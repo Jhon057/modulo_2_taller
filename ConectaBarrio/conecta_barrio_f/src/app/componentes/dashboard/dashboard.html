@@ -1,0 +1,59 @@
+<div class="dashboard-layout">
+  <header class="navbar">
+    <div class="nav-brand">
+      <span class="icon">🏘️</span>
+      <span class="title">ConectaBarrio</span>
+    </div>
+    @if (authService.currentUser(); as user) {
+      <div class="user-menu">
+        <div class="user-info">
+          <span class="user-name">👤 {{ user.username }}</span>
+          <span class="user-role-badge" [class]="user.rol.toLowerCase()">
+            {{ user.rol }}
+          </span>
+        </div>
+        <button class="btn-logout" (click)="logout()">Cerrar Sesión 🚪</button>
+      </div>
+    }
+  </header>
+
+  <main class="dashboard-content">
+    <div class="welcome-card">
+      <h1>¡Bienvenido a ConectaBarrio!</h1>
+      <p class="subtitle">Panel de gestión comunitaria y seguimiento vecinal.</p>
+
+      @if (authService.currentUser(); as user) {
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">👤</div>
+            <div class="stat-info">
+              <span class="label">Usuario Activo</span>
+              <span class="value">{{ user.username }}</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">🛡️</div>
+            <div class="stat-info">
+              <span class="label">Rol Asignado</span>
+              <span class="value">{{ user.rol }}</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-info">
+              <span class="label">Estado de la Sesión</span>
+              <span class="value success">Autenticado</span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- Sección de Solicitudes -->
+    <section class="solicitudes-section">
+      <app-solicitudes></app-solicitudes>
+    </section>
+  </main>
+</div>

@@ -1,0 +1,349 @@
+<div class="solicitudes-container">
+  <!-- Cabecera de Sección -->
+  <div class="solicitudes-header">
+    <div class="header-titles">
+      <h2>Gestión de Solicitudes Comunitarias</h2>
+      <p>Crea, administra y asigna solicitudes a los líderes de tu barrio.</p>
+    </div>
+    <div class="header-actions">
+      <button class="btn-refresh" (click)="cargarDatos()" title="Recargar lista">
+        🔄 Actualizar
+      </button>
+      <button class="btn-primary" (click)="abrirModalCrear()">
+        <span class="btn-icon">➕</span> Nueva Solicitud
+      </button>
+    </div>
+  </div>
+
+  <!-- Alertas Globales -->
+  @if (successMessage()) {
+    <div class="alert alert-success animate-fade-in">
+      <span class="alert-icon">✅</span>
+      <span>{{ successMessage() }}</span>
+      <button class="alert-close" (click)="successMessage.set(null)">✕</button>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="alert alert-danger animate-fade-in">
+      <span class="alert-icon">⚠️</span>
+      <span>{{ errorMessage() }}</span>
+      <button class="alert-close" (click)="errorMessage.set(null)">✕</button>
+    </div>
+  }
+
+  <!-- Métricas Rápidas -->
+  <div class="metrics-grid">
+    <div class="metric-card total">
+      <div class="metric-icon">📑</div>
+      <div class="metric-data">
+        <span class="metric-value">{{ totalSolicitudes() }}</span>
+        <span class="metric-label">Total Solicitudes</span>
+      </div>
+    </div>
+
+    <div class="metric-card pendiente">
+      <div class="metric-icon">⏳</div>
+      <div class="metric-data">
+        <span class="metric-value">{{ pendientes() }}</span>
+        <span class="metric-label">Pendientes</span>
+      </div>
+    </div>
+
+    <div class="metric-card proceso">
+      <div class="metric-icon">⚙️</div>
+      <div class="metric-data">
+        <span class="metric-value">{{ enProceso() }}</span>
+        <span class="metric-label">En Proceso</span>
+      </div>
+    </div>
+
+    <div class="metric-card resuelta">
+      <div class="metric-icon">🎉</div>
+      <div class="metric-data">
+        <span class="metric-value">{{ resueltas() }}</span>
+        <span class="metric-label">Resueltas</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de Filtros y Búsqueda -->
+  <div class="filters-bar">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input
+        type="text"
+        placeholder="Buscar por título, descripción o líder..."
+        [ngModel]="filtroTexto()"
+        (ngModelChange)="filtroTexto.set($event)"
+      />
+      @if (filtroTexto()) {
+        <button class="clear-search" (click)="filtroTexto.set('')">✕</button>
+      }
+    </div>
+
+    <div class="filter-controls">
+      <div class="filter-group">
+        <label>Estado:</label>
+        <select [ngModel]="filtroEstado()" (ngModelChange)="filtroEstado.set($event)">
+          <option value="TODOS">Todos los estados</option>
+          <option value="PENDIENTE">Pendientes</option>
+          <option value="EN_PROCESO">En Proceso</option>
+          <option value="RESUELTA">Resueltas</option>
+          <option value="CANCELADA">Canceladas</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Prioridad:</label>
+        <select [ngModel]="filtroPrioridad()" (ngModelChange)="filtroPrioridad.set($event)">
+          <option value="TODOS">Todas</option>
+          <option value="ALTA">Alta Prioridad ⭐</option>
+          <option value="NORMAL">Normal</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  @if (isLoading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Cargando solicitudes comunitarias...</p>
+    </div>
+  } @else {
+    <!-- Empty State -->
+    @if (solicitudesFiltradas().length === 0) {
+      <div class="empty-state">
+        <div class="empty-icon">📭</div>
+        <h3>No se encontraron solicitudes</h3>
+        <p>
+          @if (solicitudes().length === 0) {
+            Aún no hay solicitudes registradas en la comunidad. ¡Sé el primero en crear una!
+          } @else {
+            No hay solicitudes que coincidan con los filtros aplicados.
+          }
+        </p>
+        <button class="btn-primary" (click)="abrirModalCrear()">
+          ➕ Crear Primera Solicitud
+        </button>
+      </div>
+    } @else {
+      <!-- Tarjetas de Solicitudes -->
+      <div class="solicitudes-grid">
+        @for (solicitud of solicitudesFiltradas(); track solicitud.id) {
+          <div class="solicitud-card" [class.alta-prioridad]="solicitud.prioridad">
+            <!-- Header de tarjeta -->
+            <div class="card-top">
+              <div class="badges-wrapper">
+                <span class="status-badge" [class]="solicitud.estado.toLowerCase()">
+                  @switch (solicitud.estado) {
+                    @case ('PENDIENTE') { ⏳ Pendiente }
+                    @case ('EN_PROCESO') { ⚙️ En Proceso }
+                    @case ('RESUELTA') { ✅ Resuelta }
+                    @case ('CANCELADA') { ❌ Cancelada }
+                  }
+                </span>
+
+                @if (solicitud.prioridad) {
+                  <span class="priority-badge">⭐ Alta Prioridad</span>
+                }
+              </div>
+
+              <span class="card-date">{{ formatearFecha(solicitud.fechaCreacion) }}</span>
+            </div>
+
+            <!-- Cuerpo de la tarjeta -->
+            <div class="card-body">
+              <h3 class="card-title">{{ solicitud.titulo }}</h3>
+              <p class="card-description">{{ solicitud.descripcion }}</p>
+            </div>
+
+            <!-- Líder Asignado -->
+            <div class="card-lider">
+              <div class="lider-avatar">👤</div>
+              <div class="lider-details">
+                <span class="lider-label">Líder Asignado:</span>
+                @if (solicitud.lider) {
+                  <span class="lider-name">{{ solicitud.lider.nombre }}</span>
+                  <span class="lider-email">{{ solicitud.lider.email }}</span>
+                } @else {
+                  <span class="lider-name unassigned">Líder Comunitario</span>
+                }
+              </div>
+            </div>
+
+            <!-- Acciones de tarjeta -->
+            <div class="card-footer">
+              <div class="footer-actions">
+                <button
+                  class="btn-action btn-edit"
+                  (click)="abrirModalEditar(solicitud)"
+                  title="Editar solicitud o reasignar líder"
+                >
+                  ✏️ Editar
+                </button>
+                <button
+                  class="btn-action btn-delete"
+                  (click)="abrirConfirmacionEliminar(solicitud)"
+                  title="Eliminar solicitud"
+                >
+                  🗑️ Eliminar
+                </button>
+              </div>
+
+              <!-- Acciones de gestión para administradores o líderes -->
+              @if (puedeCambiarEstado()) {
+                <div class="admin-quick-actions">
+                  <button
+                    class="btn-icon-action"
+                    [class.active]="solicitud.prioridad"
+                    (click)="togglePrioridad(solicitud)"
+                    title="Alternar prioridad"
+                  >
+                    {{ solicitud.prioridad ? '⭐' : '☆' }}
+                  </button>
+
+                  @if (solicitud.estado === 'PENDIENTE') {
+                    <button
+                      class="btn-quick-status process"
+                      (click)="cambiarEstado(solicitud, 'EN_PROCESO')"
+                    >
+                      Iniciar
+                    </button>
+                    <button
+                      class="btn-quick-status cancel"
+                      (click)="cambiarEstado(solicitud, 'CANCELADA')"
+                    >
+                      Cancelar
+                    </button>
+                  } @else if (solicitud.estado === 'EN_PROCESO') {
+                    <button
+                      class="btn-quick-status resolve"
+                      (click)="cambiarEstado(solicitud, 'RESUELTA')"
+                    >
+                      Resolver
+                    </button>
+                    <button
+                      class="btn-quick-status cancel"
+                      (click)="cambiarEstado(solicitud, 'CANCELADA')"
+                    >
+                      Cancelar
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+  }
+
+  <!-- MODAL: Crear / Editar Solicitud con Asignación de Líder -->
+  @if (modalAbierto()) {
+    <div class="modal-overlay" (click)="cerrarModal()">
+      <div class="modal-content animate-scale-up" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ modoEdicion() ? '✏️ Editar Solicitud' : '➕ Nueva Solicitud Comunitaria' }}</h3>
+          <button class="modal-close" (click)="cerrarModal()">✕</button>
+        </div>
+
+        @if (formError()) {
+          <div class="modal-alert alert-danger">
+            <span>⚠️ {{ formError() }}</span>
+          </div>
+        }
+
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="titulo">Título de la Solicitud *</label>
+            <input
+              id="titulo"
+              type="text"
+              class="form-input"
+              placeholder="Ej: Reparación de luminaria en Parque Central"
+              [(ngModel)]="formTitulo"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="descripcion">Descripción Detallada *</label>
+            <textarea
+              id="descripcion"
+              class="form-input textarea"
+              rows="4"
+              placeholder="Describe con claridad el problema, ubicación y detalles relevantes..."
+              [(ngModel)]="formDescripcion"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="lider">Asignar a un Líder Comunitario *</label>
+            @if (lideres().length > 0) {
+              <select id="lider" class="form-input select" [(ngModel)]="formIdLider">
+                <option [ngValue]="null" disabled>-- Selecciona un líder responsable --</option>
+                @for (lider of lideres(); track lider.id) {
+                  <option [ngValue]="lider.id">
+                    👤 {{ lider.nombre }} ({{ lider.email }})
+                  </option>
+                }
+              </select>
+              <small class="field-hint">
+                El líder seleccionado se encargará de gestionar el seguimiento de esta solicitud.
+              </small>
+            } @else {
+              <div class="no-leaders-warning">
+                <span>⚠️ No hay líderes registrados en el sistema. Debe registrarse al menos un líder antes de asignar.</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-secondary" (click)="cerrarModal()" [disabled]="isSubmitting()">
+            Cancelar
+          </button>
+          <button
+            class="btn-primary"
+            (click)="guardarSolicitud()"
+            [disabled]="isSubmitting() || lideres().length === 0"
+          >
+            @if (isSubmitting()) {
+              <span class="spinner-small"></span> Guardando...
+            } @else {
+              {{ modoEdicion() ? 'Actualizar y Asignar' : 'Crear y Asignar' }}
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- MODAL: Confirmar Eliminación -->
+  @if (modalEliminarAbierto()) {
+    <div class="modal-overlay" (click)="cerrarModalEliminar()">
+      <div class="modal-content modal-confirm animate-scale-up" (click)="$event.stopPropagation()">
+        <div class="modal-confirm-icon">🗑️</div>
+        <h3>¿Eliminar esta solicitud?</h3>
+        <p>
+          Estás a punto de eliminar la solicitud
+          <strong>"{{ solicitudSeleccionada()?.titulo }}"</strong>. Esta acción no se puede deshacer.
+        </p>
+
+        <div class="modal-footer">
+          <button class="btn-secondary" (click)="cerrarModalEliminar()" [disabled]="isSubmitting()">
+            Cancelar
+          </button>
+          <button class="btn-danger" (click)="confirmarEliminar()" [disabled]="isSubmitting()">
+            @if (isSubmitting()) {
+              <span class="spinner-small"></span> Eliminando...
+            } @else {
+              Sí, Eliminar Definitivamente
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</div>
